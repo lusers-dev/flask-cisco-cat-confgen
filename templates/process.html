@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Process</title>
+</head>
+<body>
+  <pre>
+      {% for message in get_flashed_messages() %}
+         <p>{{ message }}</p>
+      {% endfor %}
+  </pre>
+</body>
+</html>

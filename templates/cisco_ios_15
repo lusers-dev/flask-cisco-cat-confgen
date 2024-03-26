@@ -1,0 +1,147 @@
+!cisco ios 15.x - illustration ouput sample
+!
+no service pad
+service timestamps debug datetime localtime
+service timestamps log datetime localtime
+service password-encryption
+!
+hostname ##hostname##
+!
+username foobaradmin privilege 15 secret 5 00000000000000000000000000
+!
+aaa new-model
+!
+aaa group server radius isepsns
+ server name ise-policy-node-a
+ server name ise-policy-node-b
+ deadtime 5
+!
+aaa authentication login vty group isepsns local
+aaa authentication login CONSOLE local
+aaa authorization console
+aaa authorization exec default group isepsns local
+aaa authorization exec CONSOLE local
+!
+aaa session-id common
+ip domain-name xyz.com
+ip name-server 10.10.55.10
+ip name-server 10.10.55.11
+login on-failure log
+login on-success log
+vtp mode transparent
+no setup express
+no snmp mib flash cache
+!
+spanning-tree mode pvst
+spanning-tree extend system-id
+!
+vlan ##mgmt_vlan##
+ name SwitchManagement
+!
+vlan ##voip_vlan##
+ name VoIP
+!
+vlan ##general_vlan##
+ name General
+!
+vlan ##auth_vlan##
+ name Auth
+!
+Interface FastEthernet0
+no ip address
+shutdown
+!
+interface GigabitEthernet1/0/10
+ description Data and VOIP Switchport Sample
+ switchport mode access
+ switchport access vlan ##general_vlan##
+ switchport voice vlan ##voip_vlan##
+ ip access-group 120 in
+ srr-queue bandwidth share 1 60 35 5
+ srr-queue bandwidth shape  6 0 0 0
+ priority-queue out
+ storm-control broadcast level pps 50 30
+ storm-control action trap
+ mls qos trust device cisco-phone
+ mls qos trust cos
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+!
+interface GigabitEthernet1/0/48
+ description uplink 1Gb trunk
+ switchport trunk allowed vlan 2-3999
+ switchport mode trunk
+ srr-queue bandwidth share 1 60 35 5
+ srr-queue bandwidth shape  6 0 0 0
+ priority-queue out
+ auto qos trust dscp
+!
+int ra te1/0/1-2
+shut
+! 
+interface Vlan1
+no ip address
+shut
+!
+interface Vlan##mgmt_vlan##
+description SwitchManagement Network
+ip address ##ip_add## ##mask_add##
+! 
+no ip route-cache
+!
+ip default-gateway ##gw_add##
+!
+no ip http server
+no ip http secure-server
+logging trap notifications
+!
+access-list 120 deny   udp any eq bootps any
+access-list 120 permit ip any any
+!
+snmp-server location ##location##
+!
+snmp-server contact Network Team
+banner login c *** Login Required. ***
+ 
+c
+!
+!
+radius server ise-policy-node-a
+ address ipv4 10.10.200.10 auth-port 1812 acct-port 1813
+ key 7 0000000000000000000000000D
+!
+radius server ise-policy-node-b
+ address ipv4 10.10.200.11 auth-port 1812 acct-port 1813
+ key 7 0000000000000000000000000E
+!
+line con 0
+ exec-timeout 30 0
+ authorization exec CONSOLE
+ login authentication CONSOLE
+line vty 0 4
+ exec-timeout 30 0
+ login authentication vty
+ transport preferred ssh
+ transport input ssh
+ transport output ssh
+line vty 5 15
+ exec-timeout 30 0
+ login authentication vty
+ transport preferred ssh
+ transport input ssh
+ transport output ssh
+!
+ntp server 10.10.100.10
+ntp server 10.10.100.11
+ntp server 10.10.100.10 prefer
+mac address-table notification change interval 0
+mac address-table notification change
+!
+!######generate crypto key so you can ssh to switch######
+cryp key gen rsa gen
+2048
+!
+wr
+!#After you get the new switch on the network#
+wr net
+!
